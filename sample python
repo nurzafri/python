@@ -1,30 +1,31 @@
 import split_folders
-import keras
-from keras.preprocessing.image import ImageDataGenerator
-from keras import models
-from keras import layers
-from keras.optimizers import SGD
-from keras.utils.np_utils import to_categorical
-import matplotlib.pyplot as plt
-from keras.models import load_model
-from keras.preprocessing import image
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-from keras.applications.imagenet_utils import preprocess_input, decode_predictions
 
+!pip install split-folders
 source1 = "/data/home/nasilemak/notebooks/notebooks/openhack/resized_images_4"
 dest11 = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn"
 split_folders.ratio('resized_images', output="cnn", seed=1337, ratio=(.8, .2)) # default values
 
+----------------------------------------------
+
+from keras.preprocessing.image import ImageDataGenerator
 
 train_dir = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn_2/train"
 validation_dir = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn_2/val"
 test_datagen = ImageDataGenerator(rescale=1./255)
+train_datagen = ImageDataGenerator(rescale=1./255)
 
 train_generator = train_datagen.flow_from_directory(train_dir, target_size=(128,128), batch_size=20, class_mode='categorical')
 
 validation_generator = test_datagen.flow_from_directory(validation_dir, target_size=(128,128),batch_size=20, class_mode='categorical')
+
+-------------------------------------------------
+
+import keras
+from keras import models
+from keras import layers
+from keras.optimizers import SGD
+from keras.utils.np_utils import to_categorical
+
 
 model = models.Sequential()
 # Dense(64) is a fully-connected layer with 64 hidden units.
@@ -52,6 +53,10 @@ history = model.fit_generator(
         validation_steps=80 // batch_size)
 model.save_weights('first_try.h5')
 
+-----------------------------------------------------------
+
+import matplotlib.pyplot as plt
+
 acc = history.history['acc']
 val_acc = history.history['val_acc']
 loss = history.history['loss']
@@ -74,8 +79,14 @@ plt.legend()
 plt.show()
 
 model.summary()
+-------------------------------------------------------
 
-
+from keras.models import load_model
+from keras.preprocessing import image
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from keras.applications.imagenet_utils import preprocess_input, decode_predictions
 
 %matplotlib inline
 
