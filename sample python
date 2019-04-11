@@ -1,0 +1,117 @@
+import split_folders
+import keras
+from keras.preprocessing.image import ImageDataGenerator
+from keras import models
+from keras import layers
+from keras.optimizers import SGD
+from keras.utils.np_utils import to_categorical
+import matplotlib.pyplot as plt
+from keras.models import load_model
+from keras.preprocessing import image
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from keras.applications.imagenet_utils import preprocess_input, decode_predictions
+
+source1 = "/data/home/nasilemak/notebooks/notebooks/openhack/resized_images_4"
+dest11 = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn"
+split_folders.ratio('resized_images', output="cnn", seed=1337, ratio=(.8, .2)) # default values
+
+
+train_dir = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn_2/train"
+validation_dir = "/data/home/nasilemak/notebooks/notebooks/openhack/cnn_2/val"
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+train_generator = train_datagen.flow_from_directory(train_dir, target_size=(128,128), batch_size=20, class_mode='categorical')
+
+validation_generator = test_datagen.flow_from_directory(validation_dir, target_size=(128,128),batch_size=20, class_mode='categorical')
+
+model = models.Sequential()
+# Dense(64) is a fully-connected layer with 64 hidden units.
+# in the first layer, you must specify the expected input data shape:
+# here, 20-dimensional vectors.
+model.add(layers.Conv2D(64, (3,3), activation='relu', input_shape=(128,128,3)))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Conv2D(128, (3,3), activation='relu'))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Conv2D(128, (3,3), activation='relu'))
+model.add(layers.Flatten())
+model.add(layers.Dense(512, activation='relu'))
+model.add(layers.Dense(12, activation='softmax'))
+          
+sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd,
+              metrics=['accuracy'])
+
+history = model.fit_generator(
+        train_generator,
+        steps_per_epoch=350 // batch_size,
+        epochs=20,
+        validation_data=validation_generator,
+        validation_steps=80 // batch_size)
+model.save_weights('first_try.h5')
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(len(acc))
+
+plt.plot(epochs, acc, 'r', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation acccuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs, loss, 'r', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and Validation loss')
+plt.legend()
+
+plt.show()
+
+model.summary()
+
+
+
+%matplotlib inline
+
+base_image_url = "/data/home/nasilemak/notebooks/notebooks/openhack/resized_images_cnn/cnn/"
+pic = "resized_ski_helmet.jpg"
+pic2 = "resized_carabiner.jpg"
+pic3= "resized_insulated_jacket.jpg"
+pic4 = "resized_axe.jpg"
+pic5 = "resized_tent.jpg"
+
+fig = plt.figure(figsize=(12, 16))
+
+def load_image(img_path, show=False):
+
+    img = image.load_img(img_path, target_size=(128, 128))
+    img_tensor = image.img_to_array(img)                    # (height, width, channels)
+    img_tensor = np.expand_dims(img_tensor, axis=0)         # (1, height, width, channels), add a dimension because the model expects this shape: (batch_size, height, width, channels)
+    img_tensor /= 255.                                      # imshow expects values in the range [0, 1]
+
+    #a=fig.add_subplot(4,np.ceil(12/4),2)
+    #imgplot = plt.imshow(img)
+    return img_tensor
+
+image = load_image(base_image_url + pic)
+#model.predict(image)
+a= 7
+if a == model.predict_classes(image):
+    print(model.predict_classes(image))
+print(train_generator.class_indices)
+
+preds = model.predict(image)
+num = 0
+for cls in train_generator.class_indices:
+    if preds[0][train_generator.class_indices[cls]] > 0.9:
+        img = Image.open(base_image_url + pic)
+        a=fig.add_subplot(4,np.ceil(12/4),1)
+        imgplot = plt.imshow(img)
+        a.set_title(cls)
+    #print(str(cls)+": "+str(preds[0][train_generator.class_indices[cls]]))
